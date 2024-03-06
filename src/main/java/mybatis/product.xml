@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <!--  이 파일의 이름은 SQL 매퍼 입니다. 실행할 sql 만 모아놓은 파일입니다.
+  		1) DML - insert, update, delete, select 와 동일한 태그에 작성하기  
+  		2) dao 메소드에서 지정했던 메소드의 인자, 리턴타입 정하기 
+  		
+  		※ 주의 : 자바 객체의 변수(속성)명과 파라미터 기호 #{} 이름을 동일하게 합니다. 
+  				 파라미터가 Map 일 경우 KEY 이름과 파라미터 이름을 동일하게 사용
+  				 기본 형식, String 은 변수 선언 키워드와 동일하게 합니다. 
+  				 
+  		3) dto(또는 Vo) 클래스는 커스텀 생성자를 사용하고, 컬럼명과 변수명 순서를 같게 합니다.
+  		4) namespace, id 속성값 
+   -->
+<mapper namespace="tblproduct">
+	<!-- 240226 -->
+	<!--  동적 퀴리 예시 : 상품 조회에 필요한 검색 필터 
+						동적 퀴리를 위해서 where, if, trim 마이바티스 태그 사용합니다.					
+	-->
+	<!-- ① 
+		  select * from TBL_PRODUCT
+		  where category ='B2' and pname like '%' || '사과' || '%' 		<-파라미터 2개
+		  
+		 ②
+		 select * from TBL_PRODUCT
+		  where category ='B2'											<- 파라미터 키워드
+		  
+		 ③ 
+		  select * from TBL_PRODUCT
+		   where category ='B2' and pname like '%' || '사과' || '%'		<- 파라미터 카테고리
+		   	
+		 ④  
+		  select * from TBL_PRODUCT										<- 파라미터 X
+	-->
+	
+	<!--  리턴타입이 List 일때에는 제너릭타입만 설정하면 됩니다.  -->
+	<select id="search" resultType="ProductDto" parameterType="java.util.Map" >
+    	select * from TBL_PRODUCT
+    		<where>
+    		<!-- 아래 if 의 test 값은 조건식 입니다. keyword 파라미터 값이 null 이 아닐때 -->
+    			<if test="keyword!=null and keyword.lenght()>0">
+    				pname like '%' || #{keyword} || '%'
+    			</if>
+    			
+    			<!-- category 파라미터값이  null 이 아닐때 . -->
+    			<if test="category!=null and category.lenght()>0">
+    				<!-- 앞에 조건식이 없으면 and 는 trim(제거) -->
+    				<trim prefix="and">
+    					category = #{category}
+    				</trim>
+    			</if>
+    			
+    			<if test="from!=null and from.lenght()>0 and to!=null and to.lenght()>0">
+    				
+    				<trim prefix="and">
+    					price between #{from} and #{to} 
+    				</trim>
+    			</if>
+    		</where>
+    		<if test="column!=null">
+	    	ORDER BY ${column}
+	    </if>
+	</select>
+	<!-- 카테고리 가져오기 -->
+	<select id="getCategories" resultType="day4.mybatis.dto.cateDto">
+<!-- 		select distinct category from tbl_product order by category-->
+			select * from tbl_category order by code
+ 	</select>
+	
+	<!-- insert, update, delete 는 리턴타입 지정 x  그래도 (값은 리턴) -->
+	<insert id="insert" parameterType="ProductDto">
+		insert into TBL_PRODUCT(pcode,category,pname,price) 
+              values (#{pcode},#{category},#{pname},#{price})
+					
+	</insert>
+	
+	<delete id="delete" parameterType="ProductDto">
+		delete from TBL_PRODUCT where #{pcode}
+	</delete>
+	
+<!-- 	
+	<select id = "customerBuy" parameterType= "String">
+		SELECT BUY_IDX ,tb.PCODE , PNAME, PRICE, QUANTITY ,BUY_DATE
+                FROM TBL_BUY tb  
+                JOIN TBL_PRODUCT tp  
+                ON tb.PCODE = tp.PCODE 
+                WHERE tb.CUSTOMID =#{customid}
+                ORDER BY BUY_DATE DESC
+	</select> -->
+	<select id = "selectAll" parameterType= "object" resultType="productDto">
+		SELECT * FROM TBL_PRODUCT
+                ORDER BY CATEGORY
+	</select>
+	<select id = "selectByPname" parameterType= "object" resultType="productDto">
+		SELECT * FROM TBL_PRODUCT
+                WHERE PNAME LIKE '%' || #{pname} || '%'      
+                ORDER BY CATEGORY
+	</select>
+	
+	<select id = "selectByCategory" parameterType= "object" resultType="productDto">
+		SELECT * FROM TBL_PRODUCT
+                  WHERE CATEGORY =#{category}
+                  ORDER BY PNAME
+	</select>
+</mapper>  
+  
